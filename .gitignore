@@ -1,0 +1,29 @@
+ # Model files and directories
+models/
+*.bin
+*.pt
+*.pth
+*.onnx
+*.h5
+*.safetensors
+
+
+test.py
+# Python stuff
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+env/
+*.so
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
