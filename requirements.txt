@@ -8,5 +8,7 @@ sentence-transformers>=2.2.2
 pypdf2>=3.0.1
 chromadb>=0.3.21
 python-dotenv>=1.0.0
-
+streamlit>=1.22.0
+gradio>=3.44.0
+bitsandbytes
 
