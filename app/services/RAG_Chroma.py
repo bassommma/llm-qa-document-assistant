@@ -39,7 +39,7 @@ class RAG_Chroma:
                     print("Loading tokenizer...")
                     self.tokenizer = AutoTokenizer.from_pretrained(
                     settings.MODEL_NAME,
-                    local_files_only=True,
+                    # local_files_only=True,
                     pad_token_id=self.tokenizer.eos_token_id
                     )
                     print("Tokenizer loaded successfully")
