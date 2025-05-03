@@ -20,6 +20,9 @@ class RAG_Chroma:
         self.client = chromadb.PersistentClient("./chroma_db")
         self.collection = self.client.get_or_create_collection(name=collection_name,embedding_function=self.embedding_model)
         self.model_path = r"F:\ai\local_projects\rag-with-chroma\models\MYllama"
+
+
+
       def load_models(self):
                 if self.model is not None and self.tokenizer is not None:
                     print("Model is already loaded")
@@ -35,7 +38,7 @@ class RAG_Chroma:
                     # Load tokenizer first
                     print("Loading tokenizer...")
                     self.tokenizer = AutoTokenizer.from_pretrained(
-                    self.model_path,
+                    settings.MODEL_NAME,
                     local_files_only=True,
                     pad_token_id=self.tokenizer.eos_token_id
                     )
@@ -49,8 +52,9 @@ class RAG_Chroma:
                     self.model = AutoModelForCausalLM.from_pretrained(
                     
                     # quantization_config=quantization_config,
-                    self.model_path,
-                    local_files_only=True
+                    settings.MODEL_NAME,
+                    device_map="auto",
+                    load_in_8bit=True 
                     )
                     print("Model loaded successfully")
                     
