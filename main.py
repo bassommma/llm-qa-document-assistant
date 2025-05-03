@@ -1,20 +1,29 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.services.RAG_Chroma import model_service
-import os 
-
-
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-
-os.makedirs(settings.UPLOAD_DIRECTORY,exist_ok=True)
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import os
+from dotenv import load_dotenv
+from app.services.RAG_Chroma import DocumentQA
 from typing import List, Optional
 import uvicorn
 from pydantic import BaseModel
+load_dotenv()
+
+
 
 app =FastAPI(
       title=settings.PROJECT_NAME
 )
+security = HTTPBearer()
+HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
+doc_qa = DocumentQA(model_id=settings.MODEL_NAME, use_auth=True, hf_token=HF_TOKEN)
+
+os.makedirs(settings.UPLOAD_DIRECTORY,exist_ok=True)
+
+
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,7 +42,7 @@ def root():
 
 @app.get("/get_ids")
 def display_doc_ids():
-    return([model_service.collection.get()])
+    return([doc_qa.collection.get()])
 
 
 
@@ -41,7 +50,7 @@ def display_doc_ids():
 
 @app.get("/store")
 def print_store():
-    response = [model_service.collection.count()]
+    response = [doc_qa.collection.count()]
     return response
 
 @app.get("/health")
@@ -51,18 +60,18 @@ def health_check():
 
 @app.post("/clear_db")
 def delete_by_ids():
-    all_doc = model_service.collection.get()
+    all_doc = doc_qa.collection.get()
     doc_ids = all_doc["ids"]
     try:
         
-        model_service.collection.delete(ids = doc_ids)
+        doc_qa.collection.delete(ids = doc_ids)
     except:
         print("error in deleting")
     return {"database_clear": "success"}
 
 @app.post("/test-model")
 def test_gpt2(prompt:str):
-      response=model_service.generate_text(prompt)
+      response=doc_qa.generate_text(prompt)
       return{"prompt":prompt,"response":response}
 
 @app.post("/upload_document")
@@ -81,7 +90,7 @@ async def upload_document (file: UploadFile,chunk_size:Optional[int]=None):
         
         # Process the document
         try:
-            model_service.add_document(file_path, document_id,chunk_size=chunk_size)
+            doc_qa.add_document(file_path, document_id,chunk_size=chunk_size)
 
     
             return {"message": "Document been added to database succesfully", "document_id": document_id}
@@ -110,7 +119,7 @@ async def query_documents(
 ):
     
     try:
-        similar_chunks,doc_ids = model_service.retrieve_relevant_document(query, top_k)
+        similar_chunks,doc_ids = doc_qa.retrieve_relevant_document(query, top_k)
         return {
             "query": query,
             "results": similar_chunks,
@@ -127,7 +136,7 @@ async def ask_question(
 ):
     try:
         
-        answer,similar_chunks = model_service.answer_question(query, top_k)
+        answer,similar_chunks = doc_qa.answer_question(query, top_k)
         
         
         

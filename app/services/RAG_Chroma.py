@@ -8,11 +8,11 @@ import chromadb
 from chromadb.utils import embedding_functions
 from datetime import datetime
 torch.set_grad_enabled(False)
-class RAG_Chroma:
+class DocumentQA:
       
       
 
-      def __init__(self,collection_name="documents", embedding_model="sentence-transformers/all-MiniLM-L6-v2"):
+      def __init__(self,collection_name="documents", embedding_model="sentence-transformers/all-MiniLM-L6-v2",use_auth=True, hf_token=None):
         self.model = None 
         self.tokenizer = None
         self.embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
@@ -20,17 +20,15 @@ class RAG_Chroma:
         self.client = chromadb.PersistentClient("./chroma_db")
         self.collection = self.client.get_or_create_collection(name=collection_name,embedding_function=self.embedding_model)
         self.model_path = r"F:\ai\local_projects\rag-with-chroma\models\MYllama"
-
+        self.hf_token=hf_token
 
 
       def load_models(self):
                 if self.model is not None and self.tokenizer is not None:
                     print("Model is already loaded")
                     return
-                quantization_config = BitsAndBytesConfig(
-                load_in_8bit=True,
-                device_map="auto"
-        )
+                
+                
         
                 try:
                     print(f"Attempting to load model: {settings.MODEL_NAME}")
@@ -39,22 +37,24 @@ class RAG_Chroma:
                     print("Loading tokenizer...")
                     self.tokenizer = AutoTokenizer.from_pretrained(
                     settings.MODEL_NAME,
-                    # local_files_only=True,
-                    pad_token_id=self.tokenizer.eos_token_id
+                    token=self.hf_token,
+
                     )
+                    if self.tokenizer.pad_token is None:
+                        self.tokenizer.pad_token = self.tokenizer.eos_token
                     print("Tokenizer loaded successfully")
                     
         
-
+                    quantization_config = BitsAndBytesConfig(load_in_8bit=True)
                     
                     # Then load model
                     print("Loading model...")
                     self.model = AutoModelForCausalLM.from_pretrained(
-                    
-                    # quantization_config=quantization_config,
-                    settings.MODEL_NAME,
-                    device_map="auto",
-                    load_in_8bit=True 
+                        settings.MODEL_NAME,
+                        quantization_config=quantization_config,
+                        device_map="auto",
+                        token=self.hf_token,
+                        low_cpu_mem_usage=True  # Important for CPU deployment
                     )
                     print("Model loaded successfully")
                     
@@ -80,11 +80,17 @@ class RAG_Chroma:
                     raise e
         
                 print("Model is already loaded")
-      def generate_text(self,formatted_prompt:str):
-        self.load_models()
-        result = self.pipeline(formatted_prompt)  
-        full_text = result[0]['generated_text']
-        return full_text
+      def generate_text_streaming(self, formatted_prompt:str):
+            self.load_models()
+            for output in self.pipeline(
+                formatted_prompt, 
+                max_new_tokens=128, 
+                do_sample=True,
+                temperature=0.1,
+                repetition_penalty=1.15,
+                streaming=True
+            ):
+                yield output
 
             
         
@@ -267,8 +273,7 @@ class RAG_Chroma:
 
 
           
-model_service = RAG_Chroma(collection_name='documents')
-print(model_service.collection.name)
+
           
           
 

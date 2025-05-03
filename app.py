@@ -1,9 +1,13 @@
 import streamlit as st
 import requests
 import json
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 # Page configuration
 st.set_page_config(page_title="Document Q&A System", layout="wide")
+
+hf_token = os.getenv("HUGGING_FACE_TOKEN") or st.secrets.get("HUGGING_FACE_TOKEN", None)
 
 # Add a header and description
 st.title("Document Q&A System")
