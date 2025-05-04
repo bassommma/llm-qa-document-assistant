@@ -11,4 +11,11 @@ python-dotenv>=1.0.0
 streamlit>=1.22.0
 gradio>=3.44.0
 bitsandbytes
+fastapi
+uvicorn
+pydantic
+langchain  # if using for document processing
+sentence-transformers  # for embeddings
+pypdf  # for PDF parsing
+
 

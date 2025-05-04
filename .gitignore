@@ -30,3 +30,13 @@ Thumbs.db
 
 
 .streamlit/secrets.toml
+
+
+# .gitignore content
+/uploads/*
+/chroma_db/*
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env

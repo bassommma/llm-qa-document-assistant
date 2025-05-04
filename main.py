@@ -9,6 +9,14 @@ from app.services.RAG_Chroma import DocumentQA
 from typing import List, Optional
 import uvicorn
 from pydantic import BaseModel
+
+import os
+
+# Add this to your startup code
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("chroma_db", exist_ok=True)
+
+
 load_dotenv()
 
 
@@ -17,7 +25,7 @@ app =FastAPI(
       title=settings.PROJECT_NAME
 )
 security = HTTPBearer()
-HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
+HF_TOKEN = os.getenv("HUGGING_FACE_HUB_TOKEN")
 doc_qa = DocumentQA(model_id=settings.MODEL_NAME, use_auth=True, hf_token=HF_TOKEN)
 
 os.makedirs(settings.UPLOAD_DIRECTORY,exist_ok=True)
@@ -48,14 +56,14 @@ def display_doc_ids():
 
 
 
-@app.get("/store")
+@app.get("/count")
 def print_store():
     response = [doc_qa.collection.count()]
     return response
 
 @app.get("/health")
 def health_check():
-      return{"status":"ok"}
+      return{"status":"ok"} 
 
 
 @app.post("/clear_db")
@@ -71,7 +79,7 @@ def delete_by_ids():
 
 @app.post("/test-model")
 def test_gpt2(prompt:str):
-      response=doc_qa.generate_text(prompt)
+      response=doc_qa.generate_text(prompt) 
       return{"prompt":prompt,"response":response}
 
 @app.post("/upload_document")
@@ -130,27 +138,33 @@ async def query_documents(
     
 
 @app.post("/ask")
-async def ask_question(
-    query: str,
-    top_k: int = 3
-):
+async def ask_question(query: str, top_k: int = 3):
     try:
+        print(f"Received query: {query}, top_k: {top_k}")  # Debug
         
-        answer,similar_chunks = doc_qa.answer_question(query, top_k)
+        answer, similar_chunks = doc_qa.answer_question(query, top_k)
         
+        print(f"Answer received: '{answer}'")  # Debug
+        print(f"Type of answer: {type(answer)}")  # Check type
         
-        
-        return {
+        response = {
             "query": query,
             "context_chunks": similar_chunks,
             "answer": answer
         }
+        
+        print(f"Final response: {response}")  # Debug
+        
+        return response
     except Exception as e:
+        print(f"Error occurred: {str(e)}")  # Debug
         raise HTTPException(status_code=500, detail=str(e))
 
 
 
 if __name__ == "__main__":
+    print("object has been created")
+
     
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+
 

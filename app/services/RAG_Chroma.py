@@ -12,7 +12,7 @@ class DocumentQA:
       
       
 
-      def __init__(self,collection_name="documents", embedding_model="sentence-transformers/all-MiniLM-L6-v2",use_auth=True, hf_token=None):
+      def __init__(self,model_id,collection_name="documents", embedding_model="sentence-transformers/all-MiniLM-L6-v2",use_auth=True, hf_token=None):
         self.model = None 
         self.tokenizer = None
         self.embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
@@ -21,6 +21,7 @@ class DocumentQA:
         self.collection = self.client.get_or_create_collection(name=collection_name,embedding_function=self.embedding_model)
         self.model_path = r"F:\ai\local_projects\rag-with-chroma\models\MYllama"
         self.hf_token=hf_token
+        self.moedl_id=model_id
 
 
       def load_models(self):
@@ -36,7 +37,7 @@ class DocumentQA:
                     # Load tokenizer first
                     print("Loading tokenizer...")
                     self.tokenizer = AutoTokenizer.from_pretrained(
-                    settings.MODEL_NAME,
+                    self.moedl_id,
                     token=self.hf_token,
 
                     )
@@ -50,11 +51,12 @@ class DocumentQA:
                     # Then load model
                     print("Loading model...")
                     self.model = AutoModelForCausalLM.from_pretrained(
-                        settings.MODEL_NAME,
-                        quantization_config=quantization_config,
+                        self.moedl_id,
+                        # quantization_config=quantization_config,
                         device_map="auto",
                         token=self.hf_token,
-                        low_cpu_mem_usage=True  # Important for CPU deployment
+                        low_cpu_mem_usage=True
+                         # Important for CPU deployment
                     )
                     print("Model loaded successfully")
                     
@@ -80,17 +82,35 @@ class DocumentQA:
                     raise e
         
                 print("Model is already loaded")
-      def generate_text_streaming(self, formatted_prompt:str):
+
+    
+      def generate_text(self, formatted_prompt:str):
+            complete_output = ""
             self.load_models()
-            for output in self.pipeline(
+            outputs = self.pipeline(
                 formatted_prompt, 
                 max_new_tokens=128, 
                 do_sample=True,
                 temperature=0.1,
                 repetition_penalty=1.15,
-                streaming=True
-            ):
-                yield output
+                # streaming=True
+            )
+                
+                
+                
+            if isinstance(outputs, list) and len(outputs) > 0:
+
+            
+        # For non-streaming pipelines that return a list of outputs
+                if isinstance(outputs[0], dict) and 'generated_text' in outputs[0]:
+                    complete_output = outputs[0]['generated_text']
+                else:
+                    complete_output = str(outputs[0])
+            else:
+        # For other return types
+                complete_output = str(outputs)
+    
+            return complete_output
 
             
         
@@ -247,24 +267,34 @@ class DocumentQA:
       
 
 
-      def answer_question(self,query,n_results):
-         context_text,doc_ids=self.retrieve_relevant_document (query,n_results)
+      def answer_question(self, query, n_results):
+            context_text, doc_ids = self.retrieve_relevant_document(query, n_results)
+            
+            formatted_prompt = f"""
+            please provide a good answer based on the given context and query
+            ###context###
+            {context_text}
 
-         formatted_prompt = f"""
-         please provide a good consice answer based on the given context and query
-         ###context###
-         {context_text}
+            ###Question###
+            {query}
 
-         ###Question###
-         {query}
-
-        ###Answer###
-        """
-         full_answer = self.generate_text(formatted_prompt)
-         if "<|answer|>" in full_answer :
-             answer = full_answer.split("<|answer|>")[-1].strip()
-             
-         return answer,context_text
+            ###Answer###
+            """
+            
+            print("Formatted prompt:", formatted_prompt)  # Debug
+            
+            full_answer = self.generate_text(formatted_prompt)
+            print("Raw model response:", full_answer)  # Debug
+            print("Type of response:", type(full_answer))  # Check the type
+            
+            if "###Answer###" in full_answer:
+                full_answer = full_answer.split("###Answer###")[-1].strip()
+                print("Processed answer:", full_answer)  # Debug
+            
+            print("Final answer before return:", full_answer)  # Debug
+            print("Type of final answer:", type(full_answer))  # Check type again
+            
+            return full_answer, context_text
            
 
       

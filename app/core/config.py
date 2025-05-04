@@ -6,7 +6,7 @@ class Settings(BaseSettings):
       UPLOAD_DIRECTORY: str = "uploads"
       MODEL_NAME: str = "meta-llama/Llama-3.2-1B"
       SENTENCE_EMBEDDING_NAME: str = "all-MiniLM-L6-v2"
-      HF_TOKEN: str = ""
+      HUGGING_FACE_HUB_TOKEN: str = ""
       
 
       class Config:

@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
+    poppler-utils \  # For pdf processing (if using pdf2image or similar)
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
@@ -16,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the code
 COPY . .
 
-# Expose the ports for both Gradio and Streamlit
-EXPOSE 7860 8501
+# Expose the port for FastAPI
+EXPOSE 7860
 
-# Command to run the app.py which will start both Gradio and Streamlit
-CMD ["python", "app.py"]
+# Command to run the FastAPI application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]

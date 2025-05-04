@@ -4,6 +4,10 @@ import json
 import os
 from dotenv import load_dotenv
 load_dotenv()
+
+# Define your FastAPI backend URL
+FASTAPI_URL = "https://bassommma-fastapi.hf.space" # REPLACE THIS with your actual space URL
+
 # Page configuration
 st.set_page_config(page_title="Document Q&A System", layout="wide")
 
@@ -21,20 +25,18 @@ with col1:
     uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
     
     if uploaded_file is not None:
-        # Check if document is already processed (you can track this in session state)
         if st.button("Process Document"):
             with st.spinner("Processing document..."):
-                # Send file to your FastAPI backend
+                # Send file to your FastAPI backend on Hugging Face Spaces
                 files = {"file":(uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
                 params = {"chunk_size":500}
-                upload_response = requests.post("http://127.0.0.1:8000/upload_document", files=files,params= params)
-
+                upload_response = requests.post(f"{FASTAPI_URL}/upload_document", files=files, params=params)
                 
                 if upload_response.status_code == 200:
                     st.session_state.doc_processed = True
                     st.success("Document processed successfully!")
                 else:
-                    st.error(f"Error processing document: {upload_response.status_code}")
+                    st.error(f"Error processing document: {upload_response.status_code} - {upload_response.text}")
 
 with col2:
     st.subheader("Ask Questions")
@@ -56,7 +58,7 @@ with col2:
         if user_input:
             with st.spinner("Getting answer..."):
                 response = requests.post(
-                f"http://127.0.0.1:8000/ask?query={user_input}&top_k=3"
+                f"{FASTAPI_URL}/ask?query={user_input}&top_k=3"
                 )
                 
                 if response.status_code == 200:
@@ -70,7 +72,7 @@ with col2:
                     st.markdown(f"**Q: {user_input}**")
                     st.markdown(f"A: {answer}")
                 else:
-                    st.error(f"Error: {response.status_code}")
+                    st.error(f"Error: {response.status_code} - {response.text}")
         else:
             st.warning("Please enter a question")
 
@@ -85,22 +87,20 @@ with st.sidebar:
     st.subheader("About")
     st.info("This is a document Q&A system built with Streamlit and FastAPI.")
 
-
-
     st.subheader("get db length")
     if st.button('len_db'):
         with st.spinner("Getting len..."):
                 response = requests.get(
-                f"http://127.0.0.1:8000/store"
+                f"{FASTAPI_URL}/store"
                 )
                 data = response.json()
                 st.json(data)
-        st.subheader("get db length")
+                
+    st.subheader("get document IDs")
     if st.button('get_ids'):
         with st.spinner("Getting ids..."):
                 response = requests.get(
-                f"http://127.0.0.1:8000/get_ids"
+                f"{FASTAPI_URL}/get_ids"
                 )
                 data = response.json()
                 st.json(data)
-        
